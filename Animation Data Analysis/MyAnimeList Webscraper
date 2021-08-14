@@ -1,0 +1,63 @@
+def AnimeScraper(url):# A function to parse the 'Seasonal Anime' section of the website MyAnimeList.com was created to simplify and shorten the process of obtaining data
+    import requests
+    import pandas as pd
+    from bs4 import BeautifulSoup
+    import re
+    page = requests.get(url)                          #Accesss the website in question through requests
+    soup = BeautifulSoup(page.content, "html.parser") #Using beautiful soup, the html information of the webpage can be parsed
+    titles = []                                       #After viewing the website, it was determined that these 9 variables were the parseable variables of interest
+    eps = []
+    sources = []
+    producers = []
+    genres = []
+    scores = []
+    pops = []
+    synops = []
+    times = []
+    for points in soup.find_all("a", {"class": "link-title"}): #the beautifulsoup acceses all titles within the webpage and appends it to the list
+        title = str(points.text)
+        titles.append(title)
+    for points in soup.find_all("div", {"class": "eps"}):      #the same was done with the episode number and after previous inspection of the webpage, 
+        ep = str(points.text)                                  #it appears to isolate the specific number a regex filter was used
+        pattern = '(?<=\n)(.*?)(?= ep)'
+        ep = re.findall(pattern, ep)
+        ep = ''.join(ep)
+        eps.append(ep)
+    for points in soup.find_all("span", {"class": "source"}):
+        source = str(points.text)
+        sources.append(source)
+    for points in soup.find_all("span", {"class": "producer"}): #the producer and source material was again easily parsed 
+        producer = str(points.text)
+        producers.append(producer)
+    for points in soup.find_all("div", {"class": "genres-inner js-genre-inner"}): #the genres parsed the webpage and returns a list containing the genres
+        genre = str(points.text)
+        pattern = '(?<=\n)(.*?)(?=\n)'
+        genre = re.findall(pattern, genre)
+        genre = list(filter(None, genre))
+        genres.append(genre)
+    for points in soup.find_all("span", {"title": "Score"}):
+        score = str(points.text)
+        pattern = '(?<=\n        )(.*?)(?=\n)'
+        score = re.findall(pattern, score)
+        score =''.join(score)
+        scores.append(score)
+    for points in soup.find_all("span", {"title": "Members"}):
+        pop = str(points.text)
+        pattern = '(?<=\n        )(.*?)(?=\n)'
+        pop = re.findall(pattern, pop)
+        pop = ''.join(pop)
+        pops.append(pop)
+    for points in soup.find_all("span", {"class": "preline"}):
+        synop = str(points.text)
+        synop = synop.replace('\r','')
+        synop = synop.replace('\n','')
+        synop = synop.replace("\\",'')
+        synops.append(synop)
+    for points in soup.find_all("span", {"class": "remain-time"}):
+        time = str(points.text)
+        time = time.rstrip()
+        time = time.lstrip()
+        times.append(time)
+    animetable = {'Title':titles, 'Genres':genres, 'Episodes':eps, 'Source':sources, 'Producers':producers,'Scores':scores,'Time':times,'Popularity':pops,'Synopsis':synops}
+    animetable = pd.DataFrame(animetable) #after parsing all of the data on the site, they are collated and made into a dataframe  
+    return animetable
